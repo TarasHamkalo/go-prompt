@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"time"
 
@@ -35,6 +36,8 @@ type Prompt struct {
 	completionOnDown  bool
 	exitChecker       ExitChecker
 	skipTearDown      bool
+
+	asyncMessageChan <-chan string
 }
 
 // Exec is the struct contains user input context.
@@ -260,6 +263,24 @@ func (p *Prompt) Input() string {
 				p.completion.Update(*p.buf.Document())
 				p.renderer.Render(p.buf, p.completion)
 			}
+		case message := <-p.asyncMessageChan:
+			// store state
+			userInput := p.buf.Text()
+			cursor := p.buf.cursorPosition
+
+			// move to clean line
+			p.renderer.BreakLine(p.buf)
+			// print message
+			fmt.Println(message)
+
+			p.buf = NewBuffer()
+			p.buf.InsertText(userInput, false, true)
+			p.buf.cursorPosition = cursor
+			if len(userInput) > 0 {
+				p.completion.Update(*p.buf.Document())
+			}
+
+			p.renderer.Render(p.buf, p.completion)
 		default:
 			time.Sleep(10 * time.Millisecond)
 		}

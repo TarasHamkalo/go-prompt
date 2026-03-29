@@ -250,6 +250,13 @@ func OptionShowCompletionAtStart() Option {
 	}
 }
 
+func OptionWithAsyncMessageChan(asyncMessageChan <-chan string) Option {
+	return func(p *Prompt) error {
+		p.asyncMessageChan = asyncMessageChan
+		return nil
+	}
+}
+
 // OptionBreakLineCallback to run a callback at every break line
 func OptionBreakLineCallback(fn func(*Document)) Option {
 	return func(p *Prompt) error {
@@ -294,11 +301,12 @@ func New(executor Executor, completer Completer, opts ...Option) *Prompt {
 			scrollbarThumbColor:          DarkGray,
 			scrollbarBGColor:             Cyan,
 		},
-		buf:         NewBuffer(),
-		executor:    executor,
-		history:     NewHistory(),
-		completion:  NewCompletionManager(completer, 6),
-		keyBindMode: EmacsKeyBind, // All the above assume that bash is running in the default Emacs setting
+		buf:              NewBuffer(),
+		executor:         executor,
+		history:          NewHistory(),
+		completion:       NewCompletionManager(completer, 6),
+		keyBindMode:      EmacsKeyBind, // All the above assume that bash is running in the default Emacs setting
+		asyncMessageChan: make(<-chan string),
 	}
 
 	for _, opt := range opts {
